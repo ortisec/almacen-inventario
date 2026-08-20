@@ -5,14 +5,14 @@ import Pagination from '../components/Pagination'
 import { formatDate } from '../utils'
 
 const selectClass =
-  'rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200'
+  'rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
 
 function TypeBadge({ type }) {
   const isIn = type === 'ENTRADA'
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-        isIn ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+        isIn ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400'
       }`}
     >
       {isIn ? 'Entrada' : 'Salida'}
@@ -39,7 +39,7 @@ function ExportButtons({ params }) {
       <button
         onClick={() => handleExport('excel')}
         disabled={Boolean(busy)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -60,7 +60,7 @@ function ExportButtons({ params }) {
       <button
         onClick={() => handleExport('pdf')}
         disabled={Boolean(busy)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -158,8 +158,8 @@ function Movements() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-primary-900">Movimientos</h1>
-          <p className="text-sm text-primary-500">
+          <h1 className="text-2xl font-bold text-primary-900 dark:text-slate-100">Movimientos</h1>
+          <p className="text-sm text-primary-500 dark:text-slate-400">
             Historial de entradas y salidas de todos los productos.
           </p>
         </div>
@@ -173,10 +173,10 @@ function Movements() {
         />
       </div>
 
-      <div className="rounded-2xl border border-primary-100 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-primary-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-primary-500">Producto</span>
+            <span className="mb-1 block text-xs font-medium text-primary-500 dark:text-slate-400">Producto</span>
             <select
               className={`${selectClass} w-full`}
               value={filters.product_id}
@@ -191,7 +191,7 @@ function Movements() {
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-primary-500">Tipo</span>
+            <span className="mb-1 block text-xs font-medium text-primary-500 dark:text-slate-400">Tipo</span>
             <select
               className={`${selectClass} w-full`}
               value={filters.movement_type}
@@ -203,7 +203,7 @@ function Movements() {
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-primary-500">Desde</span>
+            <span className="mb-1 block text-xs font-medium text-primary-500 dark:text-slate-400">Desde</span>
             <input
               type="date"
               className={`${selectClass} w-full`}
@@ -212,7 +212,7 @@ function Movements() {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-primary-500">Hasta</span>
+            <span className="mb-1 block text-xs font-medium text-primary-500 dark:text-slate-400">Hasta</span>
             <input
               type="date"
               className={`${selectClass} w-full`}
@@ -223,17 +223,17 @@ function Movements() {
         </div>
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2 text-xs font-medium">
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
               Entradas: +{data.summary.entradas}
             </span>
-            <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-600">
+            <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-600 dark:bg-red-500/15 dark:text-red-400">
               Salidas: −{data.summary.salidas}
             </span>
           </div>
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="text-xs font-medium text-primary-500 underline-offset-2 transition hover:text-primary-700 hover:underline"
+              className="text-xs font-medium text-primary-500 underline-offset-2 transition hover:text-primary-700 hover:underline dark:text-slate-400 dark:hover:text-slate-200"
             >
               Limpiar filtros
             </button>
@@ -242,20 +242,20 @@ function Movements() {
       </div>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/15 dark:text-red-400">{error}</p>
       )}
 
       {loading ? (
         <Spinner />
       ) : data.items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-primary-200 bg-white p-10 text-center">
-          <p className="text-primary-500">No hay movimientos con esos filtros.</p>
+        <div className="rounded-2xl border border-dashed border-primary-200 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900">
+          <p className="text-primary-500 dark:text-slate-400">No hay movimientos con esos filtros.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-primary-100 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-primary-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="bg-primary-50 text-xs uppercase tracking-wide text-primary-500">
+              <thead className="bg-primary-50 text-xs uppercase tracking-wide text-primary-500 dark:bg-slate-800 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Fecha</th>
                   <th className="px-4 py-3 font-semibold">Producto</th>
@@ -265,24 +265,24 @@ function Movements() {
                   <th className="px-4 py-3 font-semibold">Nota</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-primary-50">
+              <tbody className="divide-y divide-primary-50 dark:divide-slate-800">
                 {data.items.map((m) => (
-                  <tr key={m.id} className="transition hover:bg-primary-50/50">
-                    <td className="px-4 py-3 text-primary-900">{formatDate(m.movement_date)}</td>
-                    <td className="px-4 py-3 text-primary-800">{productName(m.product_id)}</td>
+                  <tr key={m.id} className="transition hover:bg-primary-50/50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 text-primary-900 dark:text-slate-100">{formatDate(m.movement_date)}</td>
+                    <td className="px-4 py-3 text-primary-800 dark:text-slate-200">{productName(m.product_id)}</td>
                     <td className="px-4 py-3">
                       <TypeBadge type={m.movement_type} />
                     </td>
                     <td
                       className={`px-4 py-3 font-semibold ${
-                        m.movement_type === 'ENTRADA' ? 'text-emerald-600' : 'text-red-500'
+                        m.movement_type === 'ENTRADA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
                       }`}
                     >
                       {m.movement_type === 'ENTRADA' ? '+' : '−'}
                       {m.quantity}
                     </td>
-                    <td className="px-4 py-3 font-medium text-primary-800">{m.stock_after}</td>
-                    <td className="px-4 py-3 text-primary-500">{m.note || '—'}</td>
+                    <td className="px-4 py-3 font-medium text-primary-800 dark:text-slate-200">{m.stock_after}</td>
+                    <td className="px-4 py-3 text-primary-500 dark:text-slate-400">{m.note || '—'}</td>
                   </tr>
                 ))}
               </tbody>

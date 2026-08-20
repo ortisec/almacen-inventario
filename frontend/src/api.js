@@ -114,4 +114,8 @@ export const api = {
       { ...params, format },
       `movimientos-${new Date().toISOString().slice(0, 10)}.${format === 'pdf' ? 'pdf' : 'xlsx'}`,
     ),
+  dashboardStats: (params = {}) => {
+    const qs = buildQuery(params)
+    return request(`/dashboard/stats${qs ? `?${qs}` : ''}`)
+  },
 }

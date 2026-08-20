@@ -85,6 +85,34 @@ uv run uvicorn app.main:app --reload --port 8001
 
 ---
 
+### Dashboard
+
+| Metodo | Ruta                    | Descripcion                                 |
+|--------|-------------------------|---------------------------------------------|
+| GET    | `/dashboard/stats`      | KPIs, alertas de stock minimo y datos de graficas |
+
+`GET /dashboard/stats` acepta:
+| Parametro             | Default | Descripcion                          |
+|-----------------------|---------|--------------------------------------|
+| `low_stock_threshold` | 12      | Stock minimo para las alertas        |
+| `days`                | 14      | Dias que cubre la serie de movimientos |
+
+Devuelve:
+```json
+{
+  "totals": {
+    "products": 10, "products_in_stock": 7, "products_out_of_stock": 3,
+    "current_stock_total": 540, "movements": 25,
+    "entradas_count": 18, "salidas_count": 7,
+    "entradas_qty": 600, "salidas_qty": 120
+  },
+  "low_stock_threshold": 12,
+  "low_stock": [ { "id": 1, "code": "A-02", "name": "Clavos", "current_stock": 5 } ],
+  "movements_last_days": [ { "date": "2026-08-20", "entradas": 5, "salidas": 2 } ],
+  "top_products": [ { "id": 1, "code": "A-01", "name": "Tornillos", "current_stock": 300 } ]
+}
+```
+
 ## Autenticación
 
 ### Obtener token
@@ -214,6 +242,14 @@ Respuesta: igual que productos pero con `summary`:
 
 - Respeta los mismos filtros que la lista (no la paginación: exporta todo).
 - Requiere el header `Authorization: Bearer <token>`.
+- Los PDF y Excel incluyen el nombre de la entidad (configurable con `ENTITY_NAME` en el `.env`) y la fecha/hora de generación.
+
+## Configuración extra
+
+| Variable               | Default | Descripcion                                  |
+|------------------------|---------|----------------------------------------------|
+| `MIN_STOCK_THRESHOLD`  | 12      | Stock minimo para las alertas del dashboard |
+| `ENTITY_NAME`          | Municipalidad Distrital de Pueblo Nuevo - Chincha | Nombre que aparece en reportes |
 
 ---
 

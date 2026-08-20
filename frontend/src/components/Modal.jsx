@@ -1,18 +1,18 @@
 function Modal({ title, onClose, children }) {
   return (
     <div
-      className="fixed inset-0 z-30 flex items-end justify-center bg-primary-950/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-30 flex items-end justify-center bg-primary-950/40 p-0 backdrop-blur-sm sm:items-center sm:p-4 dark:bg-black/60"
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-lg sm:rounded-2xl"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-lg sm:rounded-2xl dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-primary-100 px-5 py-4">
-          <h2 className="text-lg font-semibold text-primary-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-primary-100 px-5 py-4 dark:border-slate-800">
+          <h2 className="text-lg font-semibold text-primary-900 dark:text-slate-100">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-primary-400 transition-colors hover:bg-primary-50 hover:text-primary-700"
+            className="rounded-lg p-1.5 text-primary-400 transition-colors hover:bg-primary-50 hover:text-primary-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
             aria-label="Cerrar"
           >
             <svg

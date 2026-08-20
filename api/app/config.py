@@ -11,5 +11,9 @@ class Settings(BaseSettings):
     auth_secret_key: str = "secret-cambiar-en-produccion"
     access_token_expire_minutes: int = 480
 
+    min_stock_threshold: int = 12
+
+    entity_name: str = "Municipalidad Distrital de Pueblo Nuevo - Chincha"
+
 
 settings = Settings()

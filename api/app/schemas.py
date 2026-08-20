@@ -70,3 +70,36 @@ class PaginatedMovements(BaseModel):
     page_size: int
     total_pages: int
     summary: MovementTotals
+
+
+class LowStockItem(BaseModel):
+    id: int
+    code: str
+    name: str
+    current_stock: int
+
+
+class DashboardTotals(BaseModel):
+    products: int
+    products_in_stock: int
+    products_out_of_stock: int
+    current_stock_total: int
+    movements: int
+    entradas_count: int
+    salidas_count: int
+    entradas_qty: int
+    salidas_qty: int
+
+
+class DayMovements(BaseModel):
+    date: date
+    entradas: int
+    salidas: int
+
+
+class DashboardStats(BaseModel):
+    totals: DashboardTotals
+    low_stock_threshold: int
+    low_stock: list[LowStockItem]
+    movements_last_days: list[DayMovements]
+    top_products: list[LowStockItem]

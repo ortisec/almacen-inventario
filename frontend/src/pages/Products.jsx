@@ -9,19 +9,19 @@ import Pagination from '../components/Pagination'
 import { formatDate } from '../utils'
 
 const selectClass =
-  'rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200'
+  'rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
 
 function StockBadge({ stock }) {
   if (stock > 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
         {stock}
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-400">
       <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
       Sin stock
     </span>
@@ -47,7 +47,7 @@ function ExportButtons({ params }) {
       <button
         onClick={() => handleExport('excel')}
         disabled={Boolean(busy)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -68,7 +68,7 @@ function ExportButtons({ params }) {
       <button
         onClick={() => handleExport('pdf')}
         disabled={Boolean(busy)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -157,8 +157,8 @@ function Products() {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-primary-900">Productos</h1>
-          <p className="text-sm text-primary-500">Gestiona tu catálogo y su stock.</p>
+          <h1 className="text-2xl font-bold text-primary-900 dark:text-slate-100">Productos</h1>
+          <p className="text-sm text-primary-500 dark:text-slate-400">Gestiona tu catálogo y su stock.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ExportButtons params={{ search, stock_status: stockFilter }} />
@@ -183,7 +183,7 @@ function Products() {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <input
-          className="flex-1 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 placeholder:text-primary-300 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+          className="flex-1 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 placeholder:text-primary-300 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-600"
           placeholder="Buscar por código o nombre…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -200,24 +200,24 @@ function Products() {
       </div>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 dark:bg-red-500/15 dark:text-red-400">{error}</p>
       )}
 
       {loading ? (
         <Spinner />
       ) : data.items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-primary-200 bg-white p-10 text-center">
-          <p className="text-primary-500">
+        <div className="rounded-2xl border border-dashed border-primary-200 bg-white p-10 text-center dark:border-slate-700 dark:bg-slate-900">
+          <p className="text-primary-500 dark:text-slate-400">
             {data.total === 0
               ? 'No hay productos todavía. Crea el primero.'
               : 'No se encontraron productos con esos filtros.'}
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-primary-100 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-primary-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="bg-primary-50 text-xs uppercase tracking-wide text-primary-500">
+              <thead className="bg-primary-50 text-xs uppercase tracking-wide text-primary-500 dark:bg-slate-800 dark:text-slate-400">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Código</th>
                   <th className="px-4 py-3 font-semibold">Nombre</th>
@@ -226,32 +226,32 @@ function Products() {
                   <th className="px-4 py-3 text-right font-semibold">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-primary-50">
+              <tbody className="divide-y divide-primary-50 dark:divide-slate-800">
                 {data.items.map((p) => (
-                  <tr key={p.id} className="transition hover:bg-primary-50/50">
-                    <td className="px-4 py-3 font-medium text-primary-700">{p.code}</td>
-                    <td className="px-4 py-3 text-primary-900">{p.name}</td>
+                  <tr key={p.id} className="transition hover:bg-primary-50/50 dark:hover:bg-slate-800/50">
+                    <td className="px-4 py-3 font-medium text-primary-700 dark:text-slate-300">{p.code}</td>
+                    <td className="px-4 py-3 text-primary-900 dark:text-slate-100">{p.name}</td>
                     <td className="px-4 py-3">
                       <StockBadge stock={p.current_stock} />
                     </td>
-                    <td className="px-4 py-3 text-primary-500">{formatDate(p.created_at)}</td>
+                    <td className="px-4 py-3 text-primary-500 dark:text-slate-400">{formatDate(p.created_at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           to={`/products/${p.id}`}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition hover:bg-primary-100"
+                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition hover:bg-primary-100 dark:text-primary-400 dark:hover:bg-slate-800"
                         >
                           Ver
                         </Link>
                         <button
                           onClick={() => setEditing(p)}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition hover:bg-primary-100"
+                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition hover:bg-primary-100 dark:text-primary-400 dark:hover:bg-slate-800"
                         >
                           Editar
                         </button>
                         <button
                           onClick={() => setDeleting(p)}
-                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50"
+                          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
                         >
                           Eliminar
                         </button>
