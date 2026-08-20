@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { clearToken, isAuthenticated } from '../auth'
 
 const navLink = ({ isActive }) =>
   `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -8,6 +9,15 @@ const navLink = ({ isActive }) =>
   }`
 
 function Layout() {
+  const navigate = useNavigate()
+
+  if (!isAuthenticated()) return <Navigate to="/login" replace />
+
+  const handleLogout = () => {
+    clearToken()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <div className="min-h-screen bg-primary-50">
       <header className="sticky top-0 z-20 border-b border-primary-100 bg-white/90 backdrop-blur">
@@ -35,14 +45,34 @@ function Layout() {
             </div>
           </NavLink>
 
-          <nav className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <NavLink to="/" end className={navLink}>
               Productos
             </NavLink>
             <NavLink to="/movements" className={navLink}>
               Movimientos
             </NavLink>
-          </nav>
+            <button
+              onClick={handleLogout}
+              className="ml-1 flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-primary-400 transition hover:bg-primary-100 hover:text-primary-700 sm:ml-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.8}
+                stroke="currentColor"
+                className="h-4 w-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
+                />
+              </svg>
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
         </div>
       </header>
 

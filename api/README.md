@@ -31,6 +31,19 @@ docker compose up -d --build
 - `docker compose down` detiene todo (los datos se conservan en el volumen).
 - `docker compose down -v` detiene y **borra** los datos.
 
+### Credenciales de acceso
+
+El usuario y la contraseña se configuran en el `.env` (raiz o `api/.env`):
+
+```
+AUTH_USER=mdpn
+AUTH_PASSWORD=A2026i29
+AUTH_SECRET_KEY=cambia-esta-clave-secreta
+```
+
+Todos los endpoints de productos y movimientos requieren un token.
+El único endpoint publico es `POST /auth/login`.
+
 ### Servicios del compose (raiz)
 
 - `db`: PostgreSQL 16, datos persistentes en el volumen `db_data`.
@@ -72,6 +85,31 @@ uv run uvicorn app.main:app --reload --port 8001
 
 ---
 
+## Autenticación
+
+### Obtener token
+```http
+POST /auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=mdpn&password=A2026i29
+```
+```json
+{ "access_token": "eyJhbGciOiJIUzI1NiIs...", "token_type": "bearer" }
+```
+
+Todos los demás endpoints exigen el header:
+
+```
+Authorization: Bearer <access_token>
+```
+
+- El token vence a las 8 horas.
+- Si el token falta o es inválido, responde `401`.
+- Credenciales incorrectas → `401` con `{"detail": "Usuario o contraseña incorrectos"}`.
+
+---
+
 ## Modelo de datos
 
 ### Product (products)
@@ -109,7 +147,8 @@ Base: `http://localhost:8001`
 | Metodo | Ruta                       | Descripcion                                    |
 |--------|----------------------------|------------------------------------------------|
 | POST   | `/products`                | Crear producto                                 |
-| GET    | `/products`                | Listar productos (con su stock)                |
+| GET    | `/products`                | Listar productos (paginado, con su stock)      |
+| GET    | `/products/export`         | Exportar productos (Excel o PDF)               |
 | GET    | `/products/{id}`           | Detalle del producto **+ su hoja de ruta**     |
 | PATCH  | `/products/{id}`           | Actualizar codigo / nombre                     |
 | DELETE | `/products/{id}`           | Eliminar producto (borra sus movimientos)      |
@@ -119,10 +158,62 @@ Base: `http://localhost:8001`
 
 | Metodo | Ruta                | Descripcion                              |
 |--------|---------------------|------------------------------------------|
-| GET    | `/movements`        | Todos los movimientos                    |
-| GET    | `/movements?product_id=1` | Filtra por producto                |
-| GET    | `/movements?movement_type=SALIDA` | Filtra por tipo              |
+| GET    | `/movements`        | Todos los movimientos (paginado)         |
+| GET    | `/movements/export` | Exportar movimientos (Excel o PDF)       |
 | GET    | `/movements/{id}`   | Un movimiento en particular              |
+
+## Paginación y filtros
+
+### `GET /products`
+| Parametro     | Default | Descripcion                              |
+|---------------|---------|------------------------------------------|
+| `page`        | 1       | Número de página                         |
+| `page_size`   | 20      | Filas por página (1 a 100)               |
+| `search`      | ""      | Busca por codigo o nombre (texto parcial)|
+| `stock_status`| "all"   | `all`, `with` (con stock) o `none`       |
+
+Respuesta:
+```json
+{
+  "items": [ ... ],
+  "total": 5,
+  "page": 1,
+  "page_size": 20,
+  "total_pages": 1
+}
+```
+
+### `GET /movements`
+| Parametro       | Default | Descripcion                              |
+|-----------------|---------|------------------------------------------|
+| `page`          | 1       | Número de página                         |
+| `page_size`     | 20      | Filas por página (1 a 100)               |
+| `product_id`    | null    | Filtra por producto                      |
+| `movement_type` | null    | `ENTRADA` o `SALIDA`                     |
+| `date_from`     | null    | Desde (YYYY-MM-DD)                       |
+| `date_to`       | null    | Hasta (YYYY-MM-DD)                       |
+
+Respuesta: igual que productos pero con `summary`:
+```json
+{
+  "items": [ ... ],
+  "total": 5,
+  "page": 1,
+  "page_size": 20,
+  "total_pages": 1,
+  "summary": { "entradas": 120, "salidas": 30 }
+}
+```
+
+## Exportación
+
+| Ruta                  | Parametros                        | Archivo           |
+|-----------------------|-----------------------------------|-------------------|
+| `GET /products/export`| `format=excel\|pdf` + filtros de lista | `productos-<fecha>.xlsx\|pdf` |
+| `GET /movements/export`| `format=excel\|pdf` + filtros de lista | `movimientos-<fecha>.xlsx\|pdf` |
+
+- Respeta los mismos filtros que la lista (no la paginación: exporta todo).
+- Requiere el header `Authorization: Bearer <token>`.
 
 ---
 
@@ -199,7 +290,13 @@ GET /products/1
 
 ## Guia rapida para el frontend
 
-1. **Lista de productos** -> `GET /products` (tabla con codigo, nombre, stock).
+0. **Login** -> mostrar formulario de usuario/contraseña -> `POST /auth/login`.
+   - Guardar el `access_token` (ej. en localStorage) y enviarlo en cada petición como `Authorization: Bearer <token>`.
+   - Si la API responde `401`, cerrar sesión y volver al login.
+1. **Lista de productos** -> `GET /products?page=1&page_size=10&search=...&stock_status=all`.
+   - Renderiza `items` y usa `total`/`total_pages` para la paginacion.
+2. **Exportar** -> `GET /products/export?format=excel|pdf` (o `/movements/export`).
+   - Desde el navegador, haz fetch con el token, baja el archivo como `blob` y crea un enlace de descarga.
 2. **Nuevo producto** -> formulario -> `POST /products`.
 3. **Movimiento** -> seleccionar producto, elegir ENTRADA/SALIDA, cantidad y fecha -> `POST /products/{id}/movements`.
    - Actualiza el stock automaticamente.

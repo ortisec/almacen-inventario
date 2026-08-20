@@ -48,3 +48,25 @@ class MovementOut(BaseModel):
 
 class ProductDetail(ProductOut):
     movements: list[MovementOut] = Field(description="Hoja de ruta: historial de movimientos")
+
+
+class PaginatedProducts(BaseModel):
+    items: list[ProductOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+class MovementTotals(BaseModel):
+    entradas: int
+    salidas: int
+
+
+class PaginatedMovements(BaseModel):
+    items: list[MovementOut]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    summary: MovementTotals

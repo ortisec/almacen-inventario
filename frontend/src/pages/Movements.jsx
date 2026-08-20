@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import Spinner from '../components/Spinner'
+import Pagination from '../components/Pagination'
 import { formatDate } from '../utils'
 
 const selectClass =
@@ -19,8 +20,70 @@ function TypeBadge({ type }) {
   )
 }
 
+function ExportButtons({ params }) {
+  const [busy, setBusy] = useState('')
+
+  const handleExport = async (format) => {
+    setBusy(format)
+    try {
+      await api.exportMovements(params, format)
+    } catch (err) {
+      alert(`No se pudo exportar: ${err.message}`)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => handleExport('excel')}
+        disabled={Boolean(busy)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.8}
+          stroke="currentColor"
+          className="h-4 w-4 text-emerald-600"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+          />
+        </svg>
+        {busy === 'excel' ? '…' : 'Excel'}
+      </button>
+      <button
+        onClick={() => handleExport('pdf')}
+        disabled={Boolean(busy)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.8}
+          stroke="currentColor"
+          className="h-4 w-4 text-red-600"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+          />
+        </svg>
+        {busy === 'pdf' ? '…' : 'PDF'}
+      </button>
+    </div>
+  )
+}
+
 function Movements() {
-  const [movements, setMovements] = useState([])
+  const [data, setData] = useState({ items: [], total: 0, page: 1, page_size: 10, total_pages: 1, summary: { entradas: 0, salidas: 0 } })
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -30,23 +93,33 @@ function Movements() {
     date_from: '',
     date_to: '',
   })
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   useEffect(() => {
-    api.listProducts().then(setProducts).catch(() => {})
+    api.listProducts({ page_size: 100 }).then((res) => setProducts(res.items)).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    const params = {
+  const params = useMemo(
+    () => ({
       product_id: filters.product_id,
       movement_type: filters.movement_type,
-    }
+      date_from: filters.date_from,
+      date_to: filters.date_to,
+      page,
+      page_size: pageSize,
+    }),
+    [filters, page, pageSize],
+  )
+
+  useEffect(() => {
     let cancelled = false
     setLoading(true)
     api
       .listMovements(params)
-      .then((data) => {
+      .then((res) => {
         if (!cancelled) {
-          setMovements(data)
+          setData(res)
           setError('')
         }
       })
@@ -59,7 +132,12 @@ function Movements() {
     return () => {
       cancelled = true
     }
-  }, [filters.product_id, filters.movement_type])
+  }, [params])
+
+  useEffect(() => {
+    const t = setTimeout(() => setPage(1), 350)
+    return () => clearTimeout(t)
+  }, [filters.product_id, filters.movement_type, filters.date_from, filters.date_to])
 
   const productName = useMemo(() => {
     const map = new Map(products.map((p) => [p.id, p]))
@@ -68,27 +146,6 @@ function Movements() {
       return p ? `${p.code} — ${p.name}` : `Producto #${id}`
     }
   }, [products])
-
-  const visible = useMemo(() => {
-    const { date_from, date_to } = filters
-    if (!date_from && !date_to) return movements
-    return movements.filter((m) => {
-      if (date_from && m.movement_date < date_from) return false
-      if (date_to && m.movement_date > date_to) return false
-      return true
-    })
-  }, [movements, filters.date_from, filters.date_to])
-
-  const totals = useMemo(() => {
-    return visible.reduce(
-      (acc, m) => {
-        if (m.movement_type === 'ENTRADA') acc.entradas += m.quantity
-        else acc.salidas += m.quantity
-        return acc
-      },
-      { entradas: 0, salidas: 0 },
-    )
-  }, [visible])
 
   const clearFilters = () => {
     setFilters({ product_id: '', movement_type: '', date_from: '', date_to: '' })
@@ -99,11 +156,21 @@ function Movements() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-primary-900">Movimientos</h1>
-        <p className="text-sm text-primary-500">
-          Historial de entradas y salidas de todos los productos.
-        </p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-primary-900">Movimientos</h1>
+          <p className="text-sm text-primary-500">
+            Historial de entradas y salidas de todos los productos.
+          </p>
+        </div>
+        <ExportButtons
+          params={{
+            product_id: filters.product_id,
+            movement_type: filters.movement_type,
+            date_from: filters.date_from,
+            date_to: filters.date_to,
+          }}
+        />
       </div>
 
       <div className="rounded-2xl border border-primary-100 bg-white p-4 shadow-sm">
@@ -157,10 +224,10 @@ function Movements() {
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2 text-xs font-medium">
             <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">
-              Entradas: +{totals.entradas}
+              Entradas: +{data.summary.entradas}
             </span>
             <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-600">
-              Salidas: −{totals.salidas}
+              Salidas: −{data.summary.salidas}
             </span>
           </div>
           {hasFilters && (
@@ -180,7 +247,7 @@ function Movements() {
 
       {loading ? (
         <Spinner />
-      ) : visible.length === 0 ? (
+      ) : data.items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary-200 bg-white p-10 text-center">
           <p className="text-primary-500">No hay movimientos con esos filtros.</p>
         </div>
@@ -199,7 +266,7 @@ function Movements() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-primary-50">
-                {visible.map((m) => (
+                {data.items.map((m) => (
                   <tr key={m.id} className="transition hover:bg-primary-50/50">
                     <td className="px-4 py-3 text-primary-900">{formatDate(m.movement_date)}</td>
                     <td className="px-4 py-3 text-primary-800">{productName(m.product_id)}</td>
@@ -221,9 +288,17 @@ function Movements() {
               </tbody>
             </table>
           </div>
-          <div className="border-t border-primary-50 px-4 py-2.5 text-xs text-primary-400">
-            {visible.length} movimiento{visible.length !== 1 ? 's' : ''}
-          </div>
+          <Pagination
+            page={data.page}
+            totalPages={data.total_pages}
+            total={data.total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n)
+              setPage(1)
+            }}
+          />
         </div>
       )}
     </div>

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import Modal from '../components/Modal'
 import ProductForm from '../components/ProductForm'
 import ConfirmDialog from '../components/ConfirmDialog'
 import Spinner from '../components/Spinner'
+import Pagination from '../components/Pagination'
 import { formatDate } from '../utils'
 
 const selectClass =
@@ -27,54 +28,116 @@ function StockBadge({ stock }) {
   )
 }
 
+function ExportButtons({ params }) {
+  const [busy, setBusy] = useState('')
+
+  const handleExport = async (format) => {
+    setBusy(format)
+    try {
+      await api.exportProducts(params, format)
+    } catch (err) {
+      alert(`No se pudo exportar: ${err.message}`)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => handleExport('excel')}
+        disabled={Boolean(busy)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.8}
+          stroke="currentColor"
+          className="h-4 w-4 text-emerald-600"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+          />
+        </svg>
+        {busy === 'excel' ? '…' : 'Excel'}
+      </button>
+      <button
+        onClick={() => handleExport('pdf')}
+        disabled={Boolean(busy)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 disabled:opacity-60"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.8}
+          stroke="currentColor"
+          className="h-4 w-4 text-red-600"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+          />
+        </svg>
+        {busy === 'pdf' ? '…' : 'PDF'}
+      </button>
+    </div>
+  )
+}
+
 function Products() {
-  const [products, setProducts] = useState([])
+  const [data, setData] = useState({ items: [], total: 0, page: 1, page_size: 10, total_pages: 1 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [busy, setBusy] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
-      setProducts(await api.listProducts())
+      const res = await api.listProducts({
+        page,
+        page_size: pageSize,
+        search,
+        stock_status: stockFilter,
+      })
+      setData(res)
       setError('')
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, pageSize, search, stockFilter])
 
   useEffect(() => {
     load()
-  }, [])
+  }, [load])
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return products.filter((p) => {
-      const matchesSearch =
-        !q || p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
-      const matchesStock =
-        stockFilter === 'all' ||
-        (stockFilter === 'with' && p.current_stock > 0) ||
-        (stockFilter === 'none' && p.current_stock === 0)
-      return matchesSearch && matchesStock
-    })
-  }, [products, search, stockFilter])
+  useEffect(() => {
+    const t = setTimeout(() => setPage(1), 350)
+    return () => clearTimeout(t)
+  }, [search, stockFilter])
 
-  const handleCreate = async (data) => {
-    await api.createProduct(data)
+  const handleCreate = async (formData) => {
+    await api.createProduct(formData)
     setShowCreate(false)
     await load()
   }
 
-  const handleEdit = async (data) => {
-    await api.updateProduct(editing.id, data)
+  const handleEdit = async (formData) => {
+    await api.updateProduct(editing.id, formData)
     setEditing(null)
     await load()
   }
@@ -92,27 +155,30 @@ function Products() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary-900">Productos</h1>
           <p className="text-sm text-primary-500">Gestiona tu catálogo y su stock.</p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="h-4 w-4"
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportButtons params={{ search, stock_status: stockFilter }} />
+          <button
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Nuevo producto
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-4 w-4"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Nuevo producto
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -139,10 +205,10 @@ function Products() {
 
       {loading ? (
         <Spinner />
-      ) : filtered.length === 0 ? (
+      ) : data.items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-primary-200 bg-white p-10 text-center">
           <p className="text-primary-500">
-            {products.length === 0
+            {data.total === 0
               ? 'No hay productos todavía. Crea el primero.'
               : 'No se encontraron productos con esos filtros.'}
           </p>
@@ -161,7 +227,7 @@ function Products() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-primary-50">
-                {filtered.map((p) => (
+                {data.items.map((p) => (
                   <tr key={p.id} className="transition hover:bg-primary-50/50">
                     <td className="px-4 py-3 font-medium text-primary-700">{p.code}</td>
                     <td className="px-4 py-3 text-primary-900">{p.name}</td>
@@ -196,28 +262,29 @@ function Products() {
               </tbody>
             </table>
           </div>
-          <div className="border-t border-primary-50 px-4 py-2.5 text-xs text-primary-400">
-            {filtered.length} de {products.length} productos
-          </div>
+          <Pagination
+            page={data.page}
+            totalPages={data.total_pages}
+            total={data.total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => {
+              setPageSize(n)
+              setPage(1)
+            }}
+          />
         </div>
       )}
 
       {showCreate && (
         <Modal title="Nuevo producto" onClose={() => setShowCreate(false)}>
-          <ProductForm
-            onSubmit={handleCreate}
-            onCancel={() => setShowCreate(false)}
-          />
+          <ProductForm onSubmit={handleCreate} onCancel={() => setShowCreate(false)} />
         </Modal>
       )}
 
       {editing && (
         <Modal title="Editar producto" onClose={() => setEditing(null)}>
-          <ProductForm
-            initial={editing}
-            onSubmit={handleEdit}
-            onCancel={() => setEditing(null)}
-          />
+          <ProductForm initial={editing} onSubmit={handleEdit} onCancel={() => setEditing(null)} />
         </Modal>
       )}
 

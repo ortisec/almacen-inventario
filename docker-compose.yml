@@ -23,6 +23,9 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-almacen}:${POSTGRES_PASSWORD:-almacen123}@db:5432/${POSTGRES_DB:-almacen}
+      AUTH_USER: ${AUTH_USER:?Define AUTH_USER en el .env}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:?Define AUTH_PASSWORD en el .env}
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY:?Define AUTH_SECRET_KEY en el .env}
     ports:
       - "${API_PORT:-8001}:8000"
     depends_on:
