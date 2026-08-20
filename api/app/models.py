@@ -1,6 +1,15 @@
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -38,6 +47,30 @@ class Movement(Base):
     movement_date: Mapped[date] = mapped_column(Date, default=date.today, index=True)
     stock_after: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime, onupdate=datetime.utcnow, nullable=True
+    )
 
     product: Mapped[Product] = relationship(back_populates="movements")
+    history: Mapped[list["MovementHistory"]] = relationship(
+        back_populates="movement",
+        cascade="all, delete-orphan",
+        order_by="MovementHistory.created_at, MovementHistory.id",
+    )
+
+
+class MovementHistory(Base):
+    __tablename__ = "movement_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    movement_id: Mapped[int] = mapped_column(
+        ForeignKey("movements.id", ondelete="CASCADE"), index=True
+    )
+    action: Mapped[str] = mapped_column(String(20))  # CREACION | MODIFICACION | ANULACION
+    reason: Mapped[str] = mapped_column(String(500))
+    details: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    movement: Mapped[Movement] = relationship(back_populates="history")

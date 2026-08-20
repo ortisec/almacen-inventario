@@ -33,6 +33,28 @@ class MovementCreate(BaseModel):
     note: str | None = Field(default=None, max_length=500)
 
 
+class MovementUpdate(BaseModel):
+    movement_type: Literal["ENTRADA", "SALIDA"]
+    quantity: int = Field(gt=0, description="Cantidad del movimiento")
+    movement_date: date
+    note: str | None = Field(default=None, max_length=500)
+    reason: str = Field(min_length=1, max_length=500, description="Motivo de la modificacion")
+
+
+class MovementHistoryIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=500, description="Motivo de la anulacion")
+
+
+class MovementHistoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    action: str
+    reason: str
+    details: str
+    created_at: datetime
+
+
 class MovementOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -43,6 +65,7 @@ class MovementOut(BaseModel):
     movement_date: date
     stock_after: int
     note: str | None
+    active: bool = True
     created_at: datetime
 
 

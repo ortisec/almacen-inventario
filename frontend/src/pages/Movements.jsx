@@ -2,21 +2,89 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import Spinner from '../components/Spinner'
 import Pagination from '../components/Pagination'
+import Modal from '../components/Modal'
+import Field from '../components/Field'
+import MovementEditForm from '../components/MovementEditForm'
+import MovementHistoryModal from '../components/MovementHistoryModal'
 import { formatDate } from '../utils'
 
 const selectClass =
   'rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
 
-function TypeBadge({ type }) {
+function TypeBadge({ type, active }) {
   const isIn = type === 'ENTRADA'
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-        isIn ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400'
-      }`}
-    >
-      {isIn ? 'Entrada' : 'Salida'}
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+          isIn ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400'
+        }`}
+      >
+        {isIn ? 'Entrada' : 'Salida'}
+      </span>
+      {!active && (
+        <span className="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+          Anulado
+        </span>
+      )}
     </span>
+  )
+}
+
+const iconBtn =
+  'rounded-lg p-2 text-primary-600 transition hover:bg-primary-100 dark:text-primary-400 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40'
+
+function UndoForm({ movement, onConfirm, onCancel, busy }) {
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+    if (!reason.trim()) {
+      setError('Indica el motivo de la anulación.')
+      return
+    }
+    onConfirm(reason.trim())
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-primary-800 dark:text-slate-300">
+        Vas a <strong>anular</strong> este movimiento: {movement.movement_type} de{' '}
+        {movement.quantity} unidades. El stock se recalculará y quedará registro del motivo.
+      </p>
+      <Field label="Motivo de la anulación *">
+        <input
+          className="w-full rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 placeholder:text-primary-300 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200 uppercase dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-600"
+          value={reason}
+          onChange={(e) => setReason(e.target.value.toUpperCase())}
+          placeholder="EJ. MOVIMIENTO REGISTRADO POR ERROR"
+          maxLength={500}
+          autoFocus
+          required
+        />
+      </Field>
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/15 dark:text-red-400">{error}</p>
+      )}
+      <div className="flex justify-end gap-2 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-primary-200 px-4 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-60"
+        >
+          {busy ? 'Anulando…' : 'Anular movimiento'}
+        </button>
+      </div>
+    </form>
   )
 }
 
@@ -95,6 +163,10 @@ function Movements() {
   })
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [historyFor, setHistoryFor] = useState(null)
+  const [editing, setEditing] = useState(null)
+  const [undoing, setUndoing] = useState(null)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     api.listProducts({ page_size: 100 }).then((res) => setProducts(res.items)).catch(() => {})
@@ -149,6 +221,23 @@ function Movements() {
 
   const clearFilters = () => {
     setFilters({ product_id: '', movement_type: '', date_from: '', date_to: '' })
+  }
+
+  const handleUpdate = async (formData) => {
+    await api.updateMovement(editing.id, formData)
+    setEditing(null)
+    await load()
+  }
+
+  const handleUndo = async (reason) => {
+    setBusy(true)
+    try {
+      await api.undoMovement(undoing.id, reason)
+      setUndoing(null)
+      await load()
+    } finally {
+      setBusy(false)
+    }
   }
 
   const hasFilters =
@@ -263,15 +352,19 @@ function Movements() {
                   <th className="px-4 py-3 font-semibold">Cantidad</th>
                   <th className="px-4 py-3 font-semibold">Stock resultante</th>
                   <th className="px-4 py-3 font-semibold">Nota</th>
+                  <th className="px-4 py-3 text-right font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-primary-50 dark:divide-slate-800">
                 {data.items.map((m) => (
-                  <tr key={m.id} className="transition hover:bg-primary-50/50 dark:hover:bg-slate-800/50">
+                  <tr
+                    key={m.id}
+                    className={`transition hover:bg-primary-50/50 dark:hover:bg-slate-800/50 ${m.active ? '' : 'opacity-60'}`}
+                  >
                     <td className="px-4 py-3 text-primary-900 dark:text-slate-100">{formatDate(m.movement_date)}</td>
-                    <td className="px-4 py-3 text-primary-800 dark:text-slate-200">{productName(m.product_id)}</td>
+                    <td className="px-4 py-3 text-primary-800 uppercase dark:text-slate-200">{productName(m.product_id)}</td>
                     <td className="px-4 py-3">
-                      <TypeBadge type={m.movement_type} />
+                      <TypeBadge type={m.movement_type} active={m.active} />
                     </td>
                     <td
                       className={`px-4 py-3 font-semibold ${
@@ -282,7 +375,43 @@ function Movements() {
                       {m.quantity}
                     </td>
                     <td className="px-4 py-3 font-medium text-primary-800 dark:text-slate-200">{m.stock_after}</td>
-                    <td className="px-4 py-3 text-primary-500 dark:text-slate-400">{m.note || '—'}</td>
+                    <td className="px-4 py-3 text-primary-500 uppercase dark:text-slate-400">{m.note || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setHistoryFor(m)}
+                          className={iconBtn}
+                          title="Ver historial"
+                          aria-label="Ver historial"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setEditing(m)}
+                          disabled={!m.active}
+                          className={iconBtn}
+                          title="Modificar"
+                          aria-label="Modificar"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setUndoing(m)}
+                          disabled={!m.active}
+                          className={`${iconBtn} !text-red-500 dark:!text-red-400`}
+                          title="Deshacer (anular)"
+                          aria-label="Deshacer movimiento"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -300,6 +429,31 @@ function Movements() {
             }}
           />
         </div>
+      )}
+
+      {historyFor && (
+        <MovementHistoryModal movement={historyFor} onClose={() => setHistoryFor(null)} />
+      )}
+
+      {editing && (
+        <Modal title="Modificar movimiento" onClose={() => setEditing(null)}>
+          <MovementEditForm
+            movement={editing}
+            onSubmit={handleUpdate}
+            onCancel={() => setEditing(null)}
+          />
+        </Modal>
+      )}
+
+      {undoing && (
+        <Modal title="Deshacer movimiento" onClose={() => setUndoing(null)}>
+          <UndoForm
+            movement={undoing}
+            onConfirm={handleUndo}
+            onCancel={() => setUndoing(null)}
+            busy={busy}
+          />
+        </Modal>
       )}
     </div>
   )

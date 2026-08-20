@@ -47,7 +47,7 @@ def dashboard_stats(
             func.coalesce(
                 func.sum(Movement.quantity).filter(Movement.movement_type == "SALIDA"), 0
             ),
-        )
+        ).where(Movement.active.is_(True))
     ).one()
 
     low_stock = db.scalars(
@@ -68,7 +68,7 @@ def dashboard_stats(
             Movement.movement_type,
             func.sum(Movement.quantity),
         )
-        .where(Movement.movement_date >= start)
+        .where(Movement.movement_date >= start, Movement.active.is_(True))
         .group_by(Movement.movement_date, Movement.movement_type)
     ).all()
 

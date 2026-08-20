@@ -1,6 +1,7 @@
 import { clearToken, getToken } from './auth'
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8001'
+const API_URL =
+  import.meta.env.VITE_API_URL ?? `http://${window.location.hostname}:8001`
 
 async function request(path, options = {}) {
   const headers = {
@@ -104,6 +105,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  updateMovement: (id, data) =>
+    request(`/movements/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  undoMovement: (id, reason) =>
+    request(`/movements/${id}/undo`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  movementHistory: (id) => request(`/movements/${id}/history`),
   listMovements: (params = {}) => {
     const qs = buildQuery(params)
     return request(`/movements${qs ? `?${qs}` : ''}`)

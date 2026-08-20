@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.exporters import products_excel, products_pdf
-from app.models import Movement, Product
+from app.models import Movement, MovementHistory, Product
 from app.schemas import (
     MovementCreate,
     MovementOut,
@@ -52,7 +52,7 @@ def create_product(
     existing = db.scalar(select(Product).where(Product.code == payload.code))
     if existing:
         raise HTTPException(status_code=409, detail="Ya existe un producto con ese codigo")
-    product = Product(code=payload.code, name=payload.name)
+    product = Product(code=payload.code, name=payload.name.strip().upper())
     db.add(product)
     db.commit()
     db.refresh(product)
@@ -135,6 +135,8 @@ def update_product(
         if existing:
             raise HTTPException(status_code=409, detail="Ya existe un producto con ese codigo")
     for field, value in data.items():
+        if field == "name":
+            value = value.strip().upper()
         setattr(product, field, value)
     db.commit()
     db.refresh(product)
@@ -179,15 +181,28 @@ def register_movement(
     )
     product.current_stock = stock_after
 
+    note = payload.note.strip().upper() if payload.note else None
     movement = Movement(
         product_id=product.id,
         movement_type=payload.movement_type,
         quantity=payload.quantity,
         movement_date=payload.movement_date,
         stock_after=stock_after,
-        note=payload.note,
+        note=note,
     )
     db.add(movement)
+    db.flush()
+    db.add(
+        MovementHistory(
+            movement_id=movement.id,
+            action="CREACION",
+            reason=(payload.note or "Movimiento registrado").strip().upper(),
+            details=(
+                f"Tipo: {payload.movement_type}, Cantidad: {payload.quantity}, "
+                f"Fecha: {payload.movement_date}"
+            ),
+        )
+    )
     db.commit()
     db.refresh(movement)
     return movement

@@ -300,7 +300,7 @@ function Dashboard() {
                   className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white px-3 py-2.5 transition hover:border-amber-300 hover:shadow-sm dark:border-amber-800 dark:bg-slate-900 dark:hover:border-amber-700"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-primary-900 dark:text-slate-100">
+                    <p className="truncate text-sm font-medium text-primary-900 uppercase dark:text-slate-100">
                       <span className="mr-1 font-mono text-xs text-primary-400 dark:text-slate-500">{p.code}</span>
                       {p.name}
                     </p>

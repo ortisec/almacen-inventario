@@ -6,15 +6,22 @@ import MovementForm from '../components/MovementForm'
 import Spinner from '../components/Spinner'
 import { formatDate } from '../utils'
 
-function TypeBadge({ type }) {
+function TypeBadge({ type, active = true }) {
   const isIn = type === 'ENTRADA'
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-        isIn ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400'
-      }`}
-    >
-      {isIn ? 'Entrada' : 'Salida'}
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+          isIn ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400'
+        }`}
+      >
+        {isIn ? 'Entrada' : 'Salida'}
+      </span>
+      {!active && (
+        <span className="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+          Anulado
+        </span>
+      )}
     </span>
   )
 }
@@ -87,7 +94,7 @@ function ProductDetail() {
       <div className="flex flex-col gap-4 rounded-2xl border border-primary-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
         <div>
           <p className="text-sm font-medium text-primary-500 dark:text-slate-400">{product.code}</p>
-          <h1 className="text-2xl font-bold text-primary-900 dark:text-slate-100">{product.name}</h1>
+          <h1 className="text-2xl font-bold text-primary-900 uppercase dark:text-slate-100">{product.name}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="text-right">
@@ -144,10 +151,13 @@ function ProductDetail() {
                 </thead>
                 <tbody className="divide-y divide-primary-50 dark:divide-slate-800">
                   {product.movements.map((m) => (
-                    <tr key={m.id} className="transition hover:bg-primary-50/50 dark:hover:bg-slate-800/50">
+                    <tr
+                      key={m.id}
+                      className={`transition hover:bg-primary-50/50 dark:hover:bg-slate-800/50 ${m.active ? '' : 'opacity-60'}`}
+                    >
                       <td className="px-4 py-3 text-primary-900 dark:text-slate-100">{formatDate(m.movement_date)}</td>
                       <td className="px-4 py-3">
-                        <TypeBadge type={m.movement_type} />
+                        <TypeBadge type={m.movement_type} active={m.active} />
                       </td>
                       <td
                         className={`px-4 py-3 font-semibold ${
@@ -158,7 +168,7 @@ function ProductDetail() {
                         {m.quantity}
                       </td>
                       <td className="px-4 py-3 font-medium text-primary-800 dark:text-slate-200">{m.stock_after}</td>
-                      <td className="px-4 py-3 text-primary-500 dark:text-slate-400">{m.note || '—'}</td>
+                      <td className="px-4 py-3 text-primary-500 uppercase dark:text-slate-400">{m.note || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

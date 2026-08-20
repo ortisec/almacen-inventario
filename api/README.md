@@ -26,10 +26,34 @@ docker compose up -d --build
 | Frontend  | http://localhost:5173                          |
 | API       | http://localhost:8001                          |
 | Docs API  | http://localhost:8001/docs                     |
+| pgAdmin   | http://localhost:5050                          |
 | Base datos| localhost:5433 (almacen / almacen123)          |
 
 - `docker compose down` detiene todo (los datos se conservan en el volumen).
 - `docker compose down -v` detiene y **borra** los datos.
+
+### Compartir en red (LAN)
+
+Los puertos se publican en todas las interfaces, así que cualquier equipo de la
+misma red accede con la IP del servidor (ver con `ipconfig`, p. ej.
+`192.168.x.x`):
+
+```
+http://192.168.x.x:5173   -> Sistema (frontend)
+http://192.168.x.x:8001   -> API (documentacion /docs)
+http://192.168.x.x:5050   -> pgAdmin
+```
+
+El frontend detecta automáticamente la IP desde la que se abre y apunta a la API
+de esa misma máquina (no hace falta configurar nada). Solo hay que abrir los
+puertos en el firewall de Windows (ya configurado):
+
+```powershell
+# En PowerShell como administrador (una sola vez)
+netsh advfirewall firewall add rule name="Almacen Web (5173)" dir=in action=allow protocol=TCP localport=5173
+netsh advfirewall firewall add rule name="Almacen API (8001)" dir=in action=allow protocol=TCP localport=8001
+netsh advfirewall firewall add rule name="Almacen pgAdmin (5050)" dir=in action=allow protocol=TCP localport=5050
+```
 
 ### Credenciales de acceso
 
@@ -49,6 +73,28 @@ El único endpoint publico es `POST /auth/login`.
 - `db`: PostgreSQL 16, datos persistentes en el volumen `db_data`.
 - `api`: imagen construida desde `api/Dockerfile` (uv + uvicorn).
 - `frontend`: imagen construida desde `frontend/Dockerfile` (build de Vite servido por nginx).
+- `pgadmin`: pgAdmin 4 para administrar la base de datos.
+
+### pgAdmin
+
+| Dato          | Valor                  |
+|---------------|------------------------|
+| URL           | http://localhost:5050  |
+| Email         | `almacen@utimdpn.com`  |
+| Contraseña    | `A2026i29`             |
+
+Para conectarse a la base, registrar un servidor dentro de pgAdmin con:
+
+| Campo      | Valor        |
+|------------|--------------|
+| Host       | `db`         |
+| Port       | `5432`       |
+| Usuario    | `almacen`    |
+| Password   | `almacen123` |
+
+> El host es `db` (nombre del servicio dentro de la red Docker); el puerto del
+> host para pgAdmin y las credenciales se configuran en el `.env`
+> (`PGADMIN_EMAIL`, `PGADMIN_PASSWORD`, `PGADMIN_PORT`).
 
 ## Desarrollar la API en local (sin Docker)
 
@@ -150,19 +196,37 @@ Authorization: Bearer <access_token>
 | `created_at`    | fecha  | Fecha de creacion              |
 
 ### Movement (movements) — la "hoja de ruta"
-| Campo           | Tipo   | Descripcion                           |
-|-----------------|--------|---------------------------------------|
-| `id`            | int    | Identificador                         |
-| `product_id`    | int    | Producto al que pertenece             |
-| `movement_type` | string | `"ENTRADA"` o `"SALIDA"`              |
-| `quantity`      | int    | Cantidad del movimiento (mayor a 0)   |
-| `movement_date` | fecha  | Fecha de ingreso / salida             |
-| `stock_after`   | int    | Stock que quedo tras este movimiento  |
-| `note`          | string | Nota opcional (proveedor, motivo...)  |
-| `created_at`    | fecha  | Momento en que se registro            |
+| Campo           | Tipo    | Descripcion                           |
+|-----------------|---------|---------------------------------------|
+| `id`            | int     | Identificador                         |
+| `product_id`    | int     | Producto al que pertenece             |
+| `movement_type` | string  | `"ENTRADA"` o `"SALIDA"`              |
+| `quantity`      | int     | Cantidad del movimiento (mayor a 0)   |
+| `movement_date` | fecha   | Fecha de ingreso / salida             |
+| `stock_after`   | int     | Stock que quedo tras este movimiento  |
+| `note`          | string  | Nota opcional (proveedor, motivo...)  |
+| `active`        | boolean | `true` activo, `false` anulado        |
+| `created_at`    | fecha   | Momento en que se registro            |
+| `updated_at`    | fecha   | Ultima modificacion                   |
 
 Al registrar un movimiento la API actualiza `current_stock` del producto.
 Una **SALIDA** no puede superar el stock disponible (responde error 400).
+
+### MovementHistory (movement_history) — auditoría de movimientos
+| Campo        | Tipo   | Descripcion                                          |
+|--------------|--------|------------------------------------------------------|
+| `id`         | int    | Identificador                                        |
+| `movement_id`| int    | Movimiento al que pertenece                          |
+| `action`     | string | `CREACION`, `MODIFICACION` o `ANULACION`             |
+| `reason`     | string | Motivo obligatorio (en mayúsculas)                   |
+| `details`    | string | Detalle del cambio / estado                          |
+| `created_at` | fecha  | Momento del registro                                 |
+
+Cada movimiento guarda un historial inmutable con la razón de cada
+operación. Un movimiento **anulado** (`active = false`) queda visible en la
+lista pero se excluye del `summary` y del dashboard, y no puede modificarse
+ni anularse de nuevo. Los nombres de producto, notas y motivos se guardan en
+**mayúsculas** (el frontend también fuerza mayúsculas al escribir).
 
 ---
 
@@ -184,11 +248,19 @@ Base: `http://localhost:8001`
 
 ### Movimientos
 
-| Metodo | Ruta                | Descripcion                              |
-|--------|---------------------|------------------------------------------|
-| GET    | `/movements`        | Todos los movimientos (paginado)         |
-| GET    | `/movements/export` | Exportar movimientos (Excel o PDF)       |
-| GET    | `/movements/{id}`   | Un movimiento en particular              |
+| Metodo | Ruta                          | Descripcion                                    |
+|--------|-------------------------------|------------------------------------------------|
+| GET    | `/movements`                  | Todos los movimientos (paginado)               |
+| GET    | `/movements/export`           | Exportar movimientos (Excel o PDF)             |
+| GET    | `/movements/{id}`             | Un movimiento en particular                    |
+| PATCH  | `/movements/{id}`             | Modificar tipo/cantidad/fecha/nota (requiere `reason`) |
+| POST   | `/movements/{id}/undo`        | Anular movimiento (requiere `reason`)          |
+| GET    | `/movements/{id}/history`     | Historial de auditoría del movimiento          |
+
+Al **modificar** o **anular** un movimiento el stock del producto se
+recalcula desde cero con los movimientos activos; si quedara negativo la
+operación responde **400** y no se guarda. Al **anular**, la operación
+inversa se refleja en el stock y el movimiento se marca como `active=false`.
 
 ## Paginación y filtros
 
@@ -339,6 +411,7 @@ GET /products/1
    - Si la salida supera el stock, la API responde `400` con un mensaje claro: mostrarlo al usuario.
 4. **Historial / hoja de ruta** -> `GET /products/{id}` y renderizar `movements` como lista cronologica (fecha, tipo, cantidad, stock resultante, nota).
 5. **Movimientos globales** -> `GET /movements` (filtros opcionales `product_id` y `movement_type`).
+6. **Auditoría** -> al modificar o anular un movimiento pedir siempre el motivo; `GET /movements/{id}/history` lista la linea de tiempo (CREACION / MODIFICACION / ANULACION).
 
 ### Errores comunes
 - `400` stock insuficiente en SALIDA.

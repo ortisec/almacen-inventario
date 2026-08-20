@@ -230,7 +230,7 @@ function Products() {
                 {data.items.map((p) => (
                   <tr key={p.id} className="transition hover:bg-primary-50/50 dark:hover:bg-slate-800/50">
                     <td className="px-4 py-3 font-medium text-primary-700 dark:text-slate-300">{p.code}</td>
-                    <td className="px-4 py-3 text-primary-900 dark:text-slate-100">{p.name}</td>
+                    <td className="px-4 py-3 text-primary-900 uppercase dark:text-slate-100">{p.name}</td>
                     <td className="px-4 py-3">
                       <StockBadge stock={p.current_stock} />
                     </td>

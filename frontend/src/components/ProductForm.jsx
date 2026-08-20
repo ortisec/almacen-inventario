@@ -43,10 +43,10 @@ function ProductForm({ initial, onSubmit, onCancel }) {
       </Field>
       <Field label="Nombre o descripción">
         <input
-          className={inputClass}
+          className={`${inputClass} uppercase`}
           value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="Ej. Caja de tornillos 3/4"
+          onChange={(e) => setForm({ ...form, name: e.target.value.toUpperCase() })}
+          placeholder="EJ. CAJA DE TORNILLOS 3/4"
           maxLength={200}
           required
         />

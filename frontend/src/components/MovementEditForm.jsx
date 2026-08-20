@@ -4,12 +4,13 @@ import Field from './Field'
 const inputClass =
   'w-full rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm text-primary-900 placeholder:text-primary-300 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-600'
 
-function MovementForm({ product, onSubmit, onCancel }) {
+function MovementEditForm({ movement, onSubmit, onCancel }) {
   const [form, setForm] = useState({
-    movement_type: 'ENTRADA',
-    quantity: '',
-    movement_date: new Date().toISOString().slice(0, 10),
-    note: '',
+    movement_type: movement.movement_type,
+    quantity: movement.quantity,
+    movement_date: movement.movement_date,
+    note: movement.note ?? '',
+    reason: '',
   })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -22,13 +23,8 @@ function MovementForm({ product, onSubmit, onCancel }) {
       setError('La cantidad debe ser un número entero mayor a 0.')
       return
     }
-    if (
-      form.movement_type === 'SALIDA' &&
-      quantity > product.current_stock
-    ) {
-      setError(
-        `Stock insuficiente: hay ${product.current_stock} y quieres retirar ${quantity}.`,
-      )
+    if (!form.reason.trim()) {
+      setError('Indica el motivo de la modificación.')
       return
     }
     setSaving(true)
@@ -38,6 +34,7 @@ function MovementForm({ product, onSubmit, onCancel }) {
         quantity,
         movement_date: form.movement_date,
         note: form.note.trim() || null,
+        reason: form.reason.trim(),
       })
     } catch (err) {
       setError(err.message)
@@ -91,6 +88,17 @@ function MovementForm({ product, onSubmit, onCancel }) {
         </Field>
       </div>
 
+      <Field label="Motivo de la modificación *">
+        <input
+          className={`${inputClass} uppercase`}
+          value={form.reason}
+          onChange={(e) => setForm({ ...form, reason: e.target.value.toUpperCase() })}
+          placeholder="EJ. ERROR EN LA CANTIDAD REGISTRADA"
+          maxLength={500}
+          required
+        />
+      </Field>
+
       {error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-500/15 dark:text-red-400">{error}</p>
       )}
@@ -108,11 +116,11 @@ function MovementForm({ product, onSubmit, onCancel }) {
           disabled={saving}
           className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary-700 disabled:opacity-60"
         >
-          {saving ? 'Registrando…' : 'Registrar movimiento'}
+          {saving ? 'Guardando…' : 'Guardar cambios'}
         </button>
       </div>
     </form>
   )
 }
 
-export default MovementForm
+export default MovementEditForm
